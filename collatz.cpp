@@ -388,10 +388,6 @@ int main(int argc, char *argv[]) {
 	Graph graph8233 = getFieldGraph(8233,cs8233);
 	printGraph(graph8233,"graph8233.gv");
 	
-	conjclasses cs64 = getConjugacyClasses(64);
-	Graph graph64 = getFieldGraph(64,cs64);
-	printGraph(graph64,"graph64.gv");
-	
 	conjclasses cs6561 = getConjugacyClasses(6561);
 	Graph graph6561 = getFieldGraph(6561,cs6561);
 	printGraph(graph6561,"graph6561.gv");
@@ -400,7 +396,7 @@ int main(int argc, char *argv[]) {
 	printGraph(test,"testgraph.gv");
 	weakConjecture(test,std::cout);
 		
-	int N = 100000;
+	int N = 1000;
 	std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
 	std::string name = "collatz_output";
 	if (useWeakConj) name += "_weak";
