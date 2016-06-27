@@ -388,6 +388,10 @@ int main(int argc, char *argv[]) {
 	Graph graph8233 = getFieldGraph(8233,cs8233);
 	printGraph(graph8233,"graph8233.gv");
 	
+	conjclasses cs64 = getConjugacyClasses(64);
+	Graph graph64 = getFieldGraph(64,cs64);
+	printGraph(graph64,"graph64.gv");
+	
 	conjclasses cs6561 = getConjugacyClasses(6561);
 	Graph graph6561 = getFieldGraph(6561,cs6561);
 	printGraph(graph6561,"graph6561.gv");
