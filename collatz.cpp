@@ -225,9 +225,6 @@ bool fullCycle(const cycle& cy, const conjclasses& cs) {
 				continue;
 		}
 		if (std::find(cy.begin(),cy.end(),it) == cy.end()) {
-			//std::cout << "No member in ";
-			//print(std::cout,*it);
-			//std::cout << " found!" << std::endl;
 			return false;
 		}
 	}
@@ -315,10 +312,6 @@ bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout
 						found = true;
 						break;
 					}
-					//if (ii < 0) {
-					//	found = false;
-					//	break;
-					//}
 					kp = (3*kp+1) % p;
 				} while (kp != k);				
 				if (found) {
@@ -363,11 +356,11 @@ bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout
 	bool allc = true;
 	for (int i = 0; i < cs.size(); ++i) {
 		if (not connected[i]) {
-			std::cout << "Coset " << i << " not connected!" << std::endl;
+			os << "Coset " << i << " not connected!" << std::endl;
 			allc = false;
 		}
 	}
-	std::cout << "Total cycle size = " << sizecount << std::endl;
+	os << "Total cycle size = " << sizecount << std::endl;
 	return allc;
 }
 
@@ -388,14 +381,10 @@ int main(int argc, char *argv[]) {
 	if (useNullClass) name += "_null";
 	name += ".txt";
 	std::ofstream output(name);
-	//std::ostream& output = std::cout;
 
 	int exc = 0;
-	//primes = {683,6553,8191,34511};
-	//for (int p : primes) {
-	//	if (p <= 3) continue;
 	for (int p : primes) {
-		if (p <= 48871) continue;
+		if (p <= 3) continue;
 		output << "\n\n----- P = " << p << " -----\n";
 		conjclasses cs = getConjugacyClasses(p);
 		print(output,cs);
