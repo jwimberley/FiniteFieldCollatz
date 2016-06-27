@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 #include <vector>
 #include <set>
 #include <climits>
@@ -18,6 +19,7 @@ using Vertex = graph_traits<Graph>::vertex_descriptor;
 const bool useNullClass = false;
 const bool useWeakConj = true;
 const bool useSuperStrongConj = false;
+const bool usePrimePowers = true;
 
 std::vector<int> getPrimesUnder(int N) {
 	std::vector<int> seeds = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
@@ -41,6 +43,20 @@ std::vector<int> getPrimesUnder(int N) {
 			seeds.push_back(k);
 	}
 	return seeds;
+}
+
+std::vector<int> getPrimePowersUnder(int N) {
+	std::vector<int> pows = getPrimesUnder(N);
+	std::size_t orig = pows.size();
+	for (std::size_t k = 0; k < orig; ++k) {
+		int p0 = pows[k];
+		int p = p0;
+		while ((p *= p0) < N and p > 0) {
+			pows.push_back(p);
+		}
+	}
+	std::sort(pows.begin(),pows.end());
+	return pows;
 }
 
 using conjclass = std::set<int>;
@@ -176,7 +192,8 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
 	for (int row = 0; row < adj_matrix.size(); ++row) {
 		for (int col = 0; col < adj_matrix[row].size(); col++) {
 			if (adj_matrix[row][col])
-				edges.push_back(Edge(row,col));
+				//edges.push_back(Edge(row,col));
+				edges.push_back(Edge(col,row));
 				weights.push_back(1);
 		}
 	}
@@ -369,22 +386,29 @@ using namespace std;
 int main(int argc, char *argv[]) {
 	conjclasses cs8233 = getConjugacyClasses(8233);
 	Graph graph8233 = getFieldGraph(8233,cs8233);
-	printGraph(graph8233,"graph.gv");
+	printGraph(graph8233,"graph8233.gv");
+	
+	conjclasses cs6561 = getConjugacyClasses(6561);
+	Graph graph6561 = getFieldGraph(6561,cs6561);
+	printGraph(graph6561,"graph6561.gv");
+
 	Graph test = getTestGraph(false);
 	printGraph(test,"testgraph.gv");
 	weakConjecture(test,std::cout);
 		
-	std::vector<int> primes = getPrimesUnder(100000);
+	int N = 100000;
+	std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
 	std::string name = "collatz_output";
 	if (useWeakConj) name += "_weak";
 	if (useSuperStrongConj) name += "_ss";
-	if (useNullClass) name += "_null";
+	if (usePrimePowers) name += "_pows";
+	if (useNullClass) name += "_null";	
 	name += ".txt";
 	std::ofstream output(name);
 
 	int exc = 0;
 	for (int p : primes) {
-		if (p <= 3) continue;
+		if (p % 2 == 0) continue;
 		output << "\n\n----- P = " << p << " -----\n";
 		conjclasses cs = getConjugacyClasses(p);
 		print(output,cs);
