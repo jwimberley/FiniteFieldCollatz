@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <algorithm>
 #include <vector>
 #include <set>
@@ -20,6 +21,10 @@ const bool useNullClass = false;
 const bool useWeakConj = true;
 const bool useSuperStrongConj = false;
 const bool usePrimePowers = true;
+
+const int q = 3;
+const int a = 5;
+const int b = 1;
 
 std::vector<int> getPrimesUnder(int N) {
   std::vector<int> seeds = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
@@ -126,7 +131,7 @@ conjclass getConjugacyClass(int p, int k0) {
   conjclass c;
   do {
     c.insert(k);
-    k *= 2;
+    k *= q;
     k %= p;
   } while (k != k0);
   return c;
@@ -181,7 +186,7 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
     int i = findClassIndex(k,cs);
     if (i < 0 or universal(i))
       continue;
-    int kp = (3*k+1) % p;
+    int kp = (a*k+b) % p;
     int j = findClassIndex(kp,cs);
     if (j >= 0)
       adj_matrix[i][j] = true;
@@ -267,7 +272,7 @@ bool superstrongConjecture(int p, const conjclasses& cs, std::ostream& os = std:
 	  i.push_back(findClassIndex(kp,cs));
 	  v.push_back(kp);
 	  cache[kp] = true;
-	  kp = (3*kp+1) % p;
+	  kp = (a*kp+b) % p;
 	  //} while (findClass(kp,cs) != findClass(k,cs));
 	} while (kp != k);				
 	bool full = fullCycle(cy,cs);
@@ -329,7 +334,7 @@ bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout
 	    found = true;
 	    break;
 	  }
-	  kp = (3*kp+1) % p;
+	  kp = (a*kp+b) % p;
 	} while (kp != k);				
 	if (found) {
 	  int count = 0;
@@ -384,20 +389,31 @@ bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout
 
 using namespace std;
 int main(int argc, char *argv[]) {
-  conjclasses cs8233 = getConjugacyClasses(8233);
-  Graph graph8233 = getFieldGraph(8233,cs8233);
-  printGraph(graph8233,"graph8233.gv");
-	
-  conjclasses cs6561 = getConjugacyClasses(6561);
-  Graph graph6561 = getFieldGraph(6561,cs6561);
-  printGraph(graph6561,"graph6561.gv");
+  std::vector<int> tests = {8233,6561,40};
+  for (int p : tests) {
+    if (p % q != 0) {
+      conjclasses cs = getConjugacyClasses(p);
+      Graph graph = getFieldGraph(p,cs);
+      std::cout << "\n\n----- P = " << p << " -----\n";
+      print(std::cout,cs);
+      std::stringstream filename;
+      filename << "graph" << p
+	       << "_q" << q << "a" << a << "b" << b
+	       << ".gv";
+      printGraph(graph,filename.str());
+      weakConjecture(graph,std::cout);
+    }
+  }
 
   Graph test = getTestGraph(false);
   printGraph(test,"testgraph.gv");
   weakConjecture(test,std::cout);
 		
-  int N = 500000;
-  std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
+  int N = 1;
+  //std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
+  std::vector<int> primes(N,0);
+  for (int i = 0; i < N; ++i)
+    primes[i] = q+i;
   std::string name = "collatz_output";
   if (useWeakConj) name += "_weak";
   if (useSuperStrongConj) name += "_ss";
@@ -408,7 +424,7 @@ int main(int argc, char *argv[]) {
 
   int exc = 0;
   for (int p : primes) {
-    if (p % 2 == 0) continue;
+    if (p % q == 0) continue;
     output << "\n\n----- P = " << p << " -----\n";
     conjclasses cs = getConjugacyClasses(p);
     print(output,cs);
