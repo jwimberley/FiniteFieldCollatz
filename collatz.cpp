@@ -10,6 +10,7 @@
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/graph/strong_components.hpp>
 #include <boost/graph/graphviz.hpp>
 
 using namespace boost;
@@ -22,8 +23,8 @@ const bool useWeakConj = true;
 const bool useSuperStrongConj = false;
 const bool usePrimePowers = true;
 
-const int q = 3;
-const int a = 5;
+const int q = 2;
+const int a = 3;
 const int b = 1;
 
 std::vector<int> getPrimesUnder(int N) {
@@ -182,7 +183,8 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
     }
     return true;
   };
-  for (int k = 1; k < p; ++k) {
+  int kmin = (useNullClass) ? 0 : 1;
+  for (int k = kmin; k < p; ++k) {
     int i = findClassIndex(k,cs);
     if (i < 0 or universal(i))
       continue;
@@ -196,10 +198,10 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
   std::vector<int> weights;
   for (int row = 0; row < adj_matrix.size(); ++row) {
     for (int col = 0; col < adj_matrix[row].size(); col++) {
-      if (adj_matrix[row][col])
-	//edges.push_back(Edge(row,col));
+      if (adj_matrix[row][col]) {
 	edges.push_back(Edge(col,row));
-      weights.push_back(1);
+	weights.push_back(1);
+      }
     }
   }
   Graph graph(edges.begin(),edges.end(),weights.begin(),cs.size());
@@ -225,6 +227,11 @@ bool weakConjecture(const Graph& g, std::ostream& os = std::cout) {
     os << "distance(" << v << ") = " << distances[v] << ", ";
     os << "parent(" << v << ") = " << parents[v] << std::endl;
   }
+  os << std::endl;
+  std::vector<int> component(num_vertices(g));
+  int num = strong_components(g,make_iterator_property_map(component.begin(), get(vertex_index, g)));
+  os << "Number of strongly connected components = " << num;
+  if (num != 1) os << " -- not strongly connected!";
   os << std::endl;
   return allgood;
 }
@@ -389,7 +396,7 @@ bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout
 
 using namespace std;
 int main(int argc, char *argv[]) {
-  std::vector<int> tests = {8233,6561,40};
+  std::vector<int> tests = {15,40,6561,8233,32805};
   for (int p : tests) {
     if (p % q != 0) {
       conjclasses cs = getConjugacyClasses(p);
@@ -409,11 +416,12 @@ int main(int argc, char *argv[]) {
   printGraph(test,"testgraph.gv");
   weakConjecture(test,std::cout);
 		
-  int N = 1;
+  int N = 1000;
   //std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
-  std::vector<int> primes(N,0);
-  for (int i = 0; i < N; ++i)
-    primes[i] = q+i;
+  std::vector<int> primes;
+  for (int i = q+1; i < N; ++i)
+    if (i % q != 0) primes.push_back(i);
+
   std::string name = "collatz_output";
   if (useWeakConj) name += "_weak";
   if (useSuperStrongConj) name += "_ss";
