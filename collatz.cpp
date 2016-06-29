@@ -18,14 +18,44 @@ using Edge = std::pair<int,int>;
 using Graph = adjacency_list<vecS, vecS, bidirectionalS, no_property, property < edge_weight_t, int > >;
 using Vertex = graph_traits<Graph>::vertex_descriptor;
 
+template <class Name>
+class my_label_writer {
+public:
+  my_label_writer(Name _name, Name _col, Name _fill) : name(_name), col(_col), fill(_fill) {}
+  template <class VertexOrEdge>
+  void operator()(std::ostream& out, const VertexOrEdge& v) const {
+    out << "[label=\"" << name[v]
+	<< "\", color=\"" << col[v]
+	<< "\", bgcolor=\"" << fill[v]
+	<< "\"]";
+  }
+private:
+  Name name;
+  Name col;
+  Name fill;
+};
+
+template <class Name>
+my_label_writer<Name>
+make_my_label_writer(Name n, Name c, Name f) {
+  return my_label_writer<Name>(n, c, f);
+}
+
 const bool useNullClass = false;
-const bool useWeakConj = true;
-const bool useSuperStrongConj = false;
-const bool usePrimePowers = true;
 
 const int q = 2;
 const int a = 3;
 const int b = 1;
+
+int gcd(int a, int b) {
+  int x;
+  while (b) {
+    x = a % b;
+    a = b;
+    b = x;
+  }
+  return a;
+}
 
 std::vector<int> getPrimesUnder(int N) {
   std::vector<int> seeds = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
@@ -49,20 +79,6 @@ std::vector<int> getPrimesUnder(int N) {
       seeds.push_back(k);
   }
   return seeds;
-}
-
-std::vector<int> getPrimePowersUnder(int N) {
-  std::vector<int> pows = getPrimesUnder(N);
-  std::size_t orig = pows.size();
-  for (std::size_t k = 0; k < orig; ++k) {
-    int p0 = pows[k];
-    int p = p0;
-    while ((p *= p0) < N and p > 0) {
-      pows.push_back(p);
-    }
-  }
-  std::sort(pows.begin(),pows.end());
-  return pows;
 }
 
 using conjclass = std::set<int>;
@@ -145,7 +161,9 @@ conjclasses getConjugacyClasses(int p) {
     nc.insert(0);
     cs.insert(nc);
   }
-  for (int k = 1; k < p; ++k) {
+  int kmin = (useNullClass) ? 0 : 1;
+  for (int k = kmin; k < p; ++k) {
+    //if (gcd(k,p)>1) continue;
     if (not inClasses(k,cs))
       cs.insert(getConjugacyClass(p,k));
   }
@@ -158,7 +176,7 @@ Graph getTestGraph(bool connected) {
   std::vector<int> weights;
   for (int row = 0; row < N; ++row) {
     if (row != 3 and row != 0) {
-      edges.push_back(Edge(row-1,row));
+      edges.push_back(Edge(row,row-1));
       weights.push_back(1);
     } else {
       edges.push_back(Edge(row,row));
@@ -166,15 +184,15 @@ Graph getTestGraph(bool connected) {
     }
   }
   if (connected)
-    edges.push_back(Edge(1,3));
-  else
     edges.push_back(Edge(3,1));
+  else
+    edges.push_back(Edge(1,3));
   weights.push_back(1);
   Graph graph(edges.begin(),edges.end(),weights.begin(),N);
   return graph;
 }
 
-Graph getFieldGraph(int p, const conjclasses& cs) {
+Graph getCosetGraph(int p, const conjclasses& cs) {
   std::vector< std::vector<bool> > adj_matrix(cs.size(),std::vector<bool>(cs.size(),false));
   auto universal = [&] (int row) {
     for (int col = 0; col < adj_matrix[row].size(); col++) {
@@ -185,6 +203,7 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
   };
   int kmin = (useNullClass) ? 0 : 1;
   for (int k = kmin; k < p; ++k) {
+    //if (gcd(k,p)>1) continue;
     int i = findClassIndex(k,cs);
     if (i < 0 or universal(i))
       continue;
@@ -199,13 +218,53 @@ Graph getFieldGraph(int p, const conjclasses& cs) {
   for (int row = 0; row < adj_matrix.size(); ++row) {
     for (int col = 0; col < adj_matrix[row].size(); col++) {
       if (adj_matrix[row][col]) {
-	edges.push_back(Edge(col,row));
+	edges.push_back(Edge(row,col));
 	weights.push_back(1);
       }
     }
   }
   Graph graph(edges.begin(),edges.end(),weights.begin(),cs.size());
   return graph;
+}
+
+bool fakeCoset(int p, const conjclass& c) {
+  for (int k : c) {
+    if (k == 0) return true;
+    if (gcd(k,p)>1) return true;
+  }
+  return false;
+}
+
+void printGraph(const Graph& g, int p, const conjclasses& cs, std::string name) {
+  std::vector<std::string> vnames;
+  std::vector<std::string> vcols;
+  std::vector<std::string> vfills;
+  std::cout << __LINE__ << std::endl;
+  for (const auto& c : cs) {
+    if (fakeCoset(p,c)) {
+      vcols.push_back("red");
+      vfills.push_back("red");
+    } else {
+      vcols.push_back("black");
+      vfills.push_back("lightgrey");
+    }
+    std::stringstream vn;
+    int count = 0;
+    for (int k : c) {
+      if (count > 0) vn << ",";
+      vn << k;
+      if (count > 2) {
+	vn << ",...";
+	break;
+      }
+      ++count;
+    }
+    vnames.push_back(vn.str());
+    std::cout << vn.str() << std::endl;
+  }
+  std::cout << __LINE__ << std::endl;
+  std::ofstream gfile(name);
+  write_graphviz(gfile,g, make_my_label_writer(vnames,vcols,vfills));
 }
 
 void printGraph(const Graph& g, std::string name) {
@@ -241,191 +300,34 @@ bool weakConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout) 
     os << "Only one cycle; trivial!" << std::endl;
     return true;
   }
-  Graph g = getFieldGraph(p,cs);
+  Graph g = getCosetGraph(p,cs);
   return weakConjecture(g,os);
 }
 
-bool fullCycle(const cycle& cy, const conjclasses& cs) {
-  conjclass nc;
-  nc.insert(0);
-  for (auto it = cs.begin(); it != cs.end(); ++it) {
-    if (useNullClass) {
-      if (*it == nc)
-	continue;
-    }
-    if (std::find(cy.begin(),cy.end(),it) == cy.end()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool superstrongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout) {
-  if (cs.size() == 1) {
-    os << "Only one cycle; trivial!" << std::endl;
-    return true;
-  }
-  conjclasses::iterator it1 = findClass(1,cs);
-  std::vector<bool> cache(p,false);
-  for (int k = 2; k < p; ++k) {
-    if (cache[k] == false) {
-      if (not inClass(k,*it1)) {
-	std::vector<int> v;
-	cycle cy;
-	std::vector<int> i;
-	int kp = k;
-	do {
-	  cy.push_back(findClass(kp,cs));
-	  i.push_back(findClassIndex(kp,cs));
-	  v.push_back(kp);
-	  cache[kp] = true;
-	  kp = (a*kp+b) % p;
-	  //} while (findClass(kp,cs) != findClass(k,cs));
-	} while (kp != k);				
-	bool full = fullCycle(cy,cs);
-	if (full) {
-	  os << "Cycle found!" << std::endl;
-	  for (int z : v)
-	    os << z << ", ";
-	  os << std::endl;
-	  os << "(";
-	  for (int z : i)
-	    os << z << ", ";
-	  os << ")\n";
-	  return true;
-	}
-      }
-    }
-  }
-  os << "No cycle found!" << std::endl;
-  return false;
-}
-
-bool strongConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout) {
-  if (cs.size() == 1) {
-    os << "Only one cycle; trivial!" << std::endl;
-    return true;
-  }
-  int identity = findClassIndex(1,cs);
-  std::vector<bool> badcache(p,false);
-  std::vector<bool> goodcache(p,false);
-  std::vector<bool> connected(cs.size(),false);
-  connected[identity] = true;
-  int ck = 0;
-  int sizecount = 0;
-  for (const auto& c : cs) {
-    if (connected[ck]) {
-      ++ck;
-      continue;
-    }
-    bool found = false;
-    for (int k : c) {
-      if ((not badcache[k]) and (not goodcache[k])) {
-	std::vector<int> v;
-	std::vector<int> i;
-	int ii;
-	int kp = k;
-	do {
-	  if (goodcache[kp]) {
-	    found = true;
-	    break;
-	  }
-	  if (badcache[kp]) {
-	    found = false;
-	    break;
-	  }
-	  ii = findClassIndex(kp,cs);
-	  v.push_back(kp);
-	  i.push_back(ii);
-	  if (ii == identity) {
-	    found = true;
-	    break;
-	  }
-	  kp = (a*kp+b) % p;
-	} while (kp != k);				
-	if (found) {
-	  int count = 0;
-	  for (int z : v) {
-	    goodcache[k] = true;
-	    if (count > 0) {
-	      os << ", ";
-	    }
-	    os << z;
-	    if (count > 5)
-	      break;
-	    ++count;
-	  }
-	  if (v.size() > 5) os << "...";
-	  os << ")\t (";
-	  count = 0;
-	  for (int z : i) {
-	    if (z >= 0)
-	      connected[z] = true;
-	    if (count > 0) {
-	      os << ", ";
-	    }
-	    os << z;
-	    if (count > 5)
-	      break;
-	    ++count;
-	  }
-	  if (i.size() > 5) os << "...";
-	  os << ")\t -- size = " << i.size() << "\n";
-	  sizecount += i.size()-1;
-	} else {
-	  for (int z : v)
-	    badcache[k] = true;
-	}
-      }
-      if (found)
-	break;
-    }
-    ++ck;
-  }
-  bool allc = true;
-  for (int i = 0; i < cs.size(); ++i) {
-    if (not connected[i]) {
-      os << "Coset " << i << " not connected!" << std::endl;
-      allc = false;
-    }
-  }
-  os << "Total cycle size = " << sizecount << std::endl;
-  return allc;
-}
-
-
 using namespace std;
 int main(int argc, char *argv[]) {
-  std::vector<int> tests = {15,40,6561,8233,32805};
+  std::vector<int> tests = {15,17,40,6561,8233,32805};
   for (int p : tests) {
     if (p % q != 0) {
       conjclasses cs = getConjugacyClasses(p);
-      Graph graph = getFieldGraph(p,cs);
+      Graph graph = getCosetGraph(p,cs);
       std::cout << "\n\n----- P = " << p << " -----\n";
       print(std::cout,cs);
       std::stringstream filename;
       filename << "graph" << p
 	       << "_q" << q << "a" << a << "b" << b
 	       << ".gv";
-      printGraph(graph,filename.str());
+      printGraph(graph,p,cs,filename.str());
       weakConjecture(graph,std::cout);
     }
   }
 
-  Graph test = getTestGraph(false);
-  printGraph(test,"testgraph.gv");
-  weakConjecture(test,std::cout);
-		
   int N = 1000;
-  //std::vector<int> primes = (usePrimePowers) ? getPrimePowersUnder(N) : getPrimesUnder(N);
   std::vector<int> primes;
   for (int i = q+1; i < N; ++i)
     if (i % q != 0) primes.push_back(i);
 
   std::string name = "collatz_output";
-  if (useWeakConj) name += "_weak";
-  if (useSuperStrongConj) name += "_ss";
-  if (usePrimePowers) name += "_pows";
   if (useNullClass) name += "_null";	
   name += ".txt";
   std::ofstream output(name);
@@ -436,13 +338,7 @@ int main(int argc, char *argv[]) {
     output << "\n\n----- P = " << p << " -----\n";
     conjclasses cs = getConjugacyClasses(p);
     print(output,cs);
-    bool good;
-    if (useWeakConj)
-      good = weakConjecture(p,cs,output);
-    else if (useSuperStrongConj)
-      good = superstrongConjecture(p,cs,output);
-    else
-      good = strongConjecture(p,cs,output);
+    bool good = weakConjecture(p,cs,output);
     if (not good) {
       ++exc;
       std::cout << "P = " << p << " fails!" << std::endl;

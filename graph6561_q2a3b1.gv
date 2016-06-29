@@ -1,18 +1,18 @@
 digraph G {
-0;
-1;
-2;
-3;
-4;
-5;
-6;
-7;
+0[label="1,2,4,5,...", color="black", bgcolor="lightgrey"];
+1[label="3,6,12,15,...", color="red", bgcolor="red"];
+2[label="9,18,36,45,...", color="red", bgcolor="red"];
+3[label="27,54,108,135,...", color="red", bgcolor="red"];
+4[label="81,162,324,405,...", color="red", bgcolor="red"];
+5[label="243,486,972,1215,...", color="red", bgcolor="red"];
+6[label="729,1458,2916,3645,...", color="red", bgcolor="red"];
+7[label="2187,4374", color="red", bgcolor="red"];
 0->0 ;
-0->1 ;
-0->2 ;
-0->3 ;
-0->4 ;
-0->5 ;
-0->6 ;
-0->7 ;
+1->0 ;
+2->0 ;
+3->0 ;
+4->0 ;
+5->0 ;
+6->0 ;
+7->0 ;
 }
