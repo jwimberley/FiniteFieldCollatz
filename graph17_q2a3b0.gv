@@ -2,10 +2,7 @@ digraph G {
 0[label="0", color="red", bgcolor="red"];
 1[label="1,2,4,8,...", color="black", bgcolor="lightgrey"];
 2[label="3,5,6,7,...", color="black", bgcolor="lightgrey"];
-0->1 ;
-1->1 ;
+0->0 ;
 1->2 ;
-2->0 ;
 2->1 ;
-2->2 ;
 }

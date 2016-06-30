@@ -4,15 +4,9 @@ digraph G {
 2[label="3,6,9,12,...", color="red", bgcolor="red"];
 3[label="5,10", color="red", bgcolor="red"];
 4[label="7,11,13,14,...", color="black", bgcolor="lightgrey"];
-0->1 ;
-1->1 ;
-1->3 ;
-1->4 ;
-2->1 ;
-2->3 ;
-2->4 ;
-3->1 ;
-4->1 ;
-4->3 ;
-4->4 ;
+0->0 ;
+1->2 ;
+2->2 ;
+3->0 ;
+4->2 ;
 }

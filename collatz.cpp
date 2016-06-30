@@ -17,6 +17,8 @@ using namespace boost;
 using Edge = std::pair<int,int>;
 using Graph = adjacency_list<vecS, vecS, bidirectionalS, no_property, property < edge_weight_t, int > >;
 using Vertex = graph_traits<Graph>::vertex_descriptor;
+using coset = std::set<int>;
+using cosets = std::set<coset>;
 
 template <class Name>
 class my_label_writer {
@@ -40,8 +42,6 @@ my_label_writer<Name>
 make_my_label_writer(Name n, Name c, Name f) {
   return my_label_writer<Name>(n, c, f);
 }
-
-const bool useNullClass = false;
 
 const int q = 2;
 const int a = 3;
@@ -81,11 +81,7 @@ std::vector<int> getPrimesUnder(int N) {
   return seeds;
 }
 
-using conjclass = std::set<int>;
-using conjclasses = std::set<conjclass>;
-using cycle = std::vector<conjclasses::iterator>;
-
-void print(std::ostream& os, const conjclass& c) {
+void print(std::ostream& os, const coset& c) {
   os << "{";
   int count = 0;
   for (int k : c) {
@@ -101,7 +97,7 @@ void print(std::ostream& os, const conjclass& c) {
   os << "}";
 }
 
-void print (std::ostream& os, const conjclasses& cs) {
+void print (std::ostream& os, const cosets& cs) {
   os << "{" << std::endl;
   int k = 0;
   for (const auto& c : cs) {
@@ -113,11 +109,11 @@ void print (std::ostream& os, const conjclasses& cs) {
   os << "}" << std::endl;
 }
 
-bool inClass(int k, const conjclass& c) {
+bool inClass(int k, const coset& c) {
   return	(c.count(k) == 1);
 }
 
-bool inClasses(int k, const conjclasses& cs) {
+bool inClasses(int k, const cosets& cs) {
   for (const auto& c : cs) {
     if (inClass(k,c))
       return true;
@@ -125,7 +121,7 @@ bool inClasses(int k, const conjclasses& cs) {
   return false;
 }
 
-conjclasses::iterator findClass(int k, const conjclasses& cs) {
+cosets::iterator findClass(int k, const cosets& cs) {
   for (auto it = cs.begin(); it != cs.end(); ++it) {
     if (inClass(k,*it))
       return it;
@@ -133,7 +129,7 @@ conjclasses::iterator findClass(int k, const conjclasses& cs) {
   return cs.end();
 }
 
-int findClassIndex(int k, const conjclasses& cs) {
+int findClassIndex(int k, const cosets& cs) {
   std::size_t i = 0;
   for (const auto& c : cs) {
     if (inClass(k,c))
@@ -143,9 +139,9 @@ int findClassIndex(int k, const conjclasses& cs) {
   return -1;
 }
 
-conjclass getConjugacyClass(int p, int k0) {
+coset getConjugacyClass(int p, int k0) {
   int k = k0;
-  conjclass c;
+  coset c;
   do {
     c.insert(k);
     k *= q;
@@ -154,16 +150,12 @@ conjclass getConjugacyClass(int p, int k0) {
   return c;
 }
 
-conjclasses getConjugacyClasses(int p) {
-  conjclasses cs;
-  if (useNullClass) {
-    conjclass nc;
-    nc.insert(0);
-    cs.insert(nc);
-  }
-  int kmin = (useNullClass) ? 0 : 1;
-  for (int k = kmin; k < p; ++k) {
-    //if (gcd(k,p)>1) continue;
+cosets getConjugacyClasses(int p) {
+  cosets cs;
+  coset nc;
+  nc.insert(0);
+  cs.insert(nc);
+  for (int k = 0; k < p; ++k) {
     if (not inClasses(k,cs))
       cs.insert(getConjugacyClass(p,k));
   }
@@ -192,7 +184,7 @@ Graph getTestGraph(bool connected) {
   return graph;
 }
 
-Graph getCosetGraph(int p, const conjclasses& cs) {
+Graph getCosetGraph(int p, const cosets& cs) {
   std::vector< std::vector<bool> > adj_matrix(cs.size(),std::vector<bool>(cs.size(),false));
   auto universal = [&] (int row) {
     for (int col = 0; col < adj_matrix[row].size(); col++) {
@@ -201,9 +193,7 @@ Graph getCosetGraph(int p, const conjclasses& cs) {
     }
     return true;
   };
-  int kmin = (useNullClass) ? 0 : 1;
-  for (int k = kmin; k < p; ++k) {
-    //if (gcd(k,p)>1) continue;
+  for (int k = 0; k < p; ++k) {
     int i = findClassIndex(k,cs);
     if (i < 0 or universal(i))
       continue;
@@ -227,7 +217,7 @@ Graph getCosetGraph(int p, const conjclasses& cs) {
   return graph;
 }
 
-bool fakeCoset(int p, const conjclass& c) {
+bool fakeCoset(int p, const coset& c) {
   for (int k : c) {
     if (k == 0) return true;
     if (gcd(k,p)>1) return true;
@@ -235,11 +225,10 @@ bool fakeCoset(int p, const conjclass& c) {
   return false;
 }
 
-void printGraph(const Graph& g, int p, const conjclasses& cs, std::string name) {
+void printGraph(const Graph& g, int p, const cosets& cs, std::string name) {
   std::vector<std::string> vnames;
   std::vector<std::string> vcols;
   std::vector<std::string> vfills;
-  std::cout << __LINE__ << std::endl;
   for (const auto& c : cs) {
     if (fakeCoset(p,c)) {
       vcols.push_back("red");
@@ -260,9 +249,7 @@ void printGraph(const Graph& g, int p, const conjclasses& cs, std::string name) 
       ++count;
     }
     vnames.push_back(vn.str());
-    std::cout << vn.str() << std::endl;
   }
-  std::cout << __LINE__ << std::endl;
   std::ofstream gfile(name);
   write_graphviz(gfile,g, make_my_label_writer(vnames,vcols,vfills));
 }
@@ -272,44 +259,85 @@ void printGraph(const Graph& g, std::string name) {
   write_graphviz(gfile,g);
 }
 
-bool weakConjecture(const Graph& g, std::ostream& os = std::cout) {
-  Vertex id = vertex(0,g);
-  std::vector<Vertex> parents(num_vertices(g));
-  std::vector<int> distances(num_vertices(g));
-  dijkstra_shortest_paths(g,id,predecessor_map(&parents[0]).distance_map(&distances[0]));
-  bool allgood = true;
-  for (int v = 0; v < num_vertices(g); ++v) {
-    if (distances[v] == INT_MAX) {
-      allgood = false;
-      distances[v] = -1;
-    }
-    os << "distance(" << v << ") = " << distances[v] << ", ";
-    os << "parent(" << v << ") = " << parents[v] << std::endl;
-  }
-  os << std::endl;
+int graphInfo(const Graph& g, std::vector< std::vector<int> >& distanceMatrix, std::ostream& os = std::cout) {
+
   std::vector<int> component(num_vertices(g));
   int num = strong_components(g,make_iterator_property_map(component.begin(), get(vertex_index, g)));
   os << "Number of strongly connected components = " << num;
   if (num != 1) os << " -- not strongly connected!";
   os << std::endl;
-  return allgood;
+
+  //std::vector<Vertex> parents(num_vertices(g));
+  distanceMatrix.resize(num_vertices(g));
+  for (auto& row : distanceMatrix)
+    row.resize(num_vertices(g));
+  std::vector<int> distances(num_vertices(g));
+  os << "Dijkstra algorithm distances:" << std::endl;
+  os << std::setw(8) << "";
+  for (int v = 0; v < num_vertices(g); ++v) {
+    os << std::setw(4) << v;
+  }
+  os << std::endl;
+  os << std::setw(8) << "";
+  for (int v = 0; v < num_vertices(g); ++v) {
+    os << std::setw(4) << "----";
+  }
+  os << std::endl;
+  for (int f = 0; f < num_vertices(g); ++f) {
+    //dijkstra_shortest_paths(g,f,predecessor_map(&parents[0]).distance_map(&distances[0]));
+    dijkstra_shortest_paths(g,f,distance_map(&distances[0]));
+    os << std::setw(4) << f << " => ";
+    for (int v = 0; v < num_vertices(g); ++v) {
+      if (distances[v] == INT_MAX) {
+	distances[v] = -1;
+      }
+      distanceMatrix[f][v] = distances[v];
+      os << std::setw(4) << distances[v];
+      //os << "parent(" << v << ") = " << parents[v] << std::endl;
+    }
+    os << std::endl;
+  }
+  os << std::endl;
+  return num;
 }
 
-bool weakConjecture(int p, const conjclasses& cs, std::ostream& os = std::cout) {
-  if (cs.size() == 1) {
-    os << "Only one cycle; trivial!" << std::endl;
-    return true;
-  }
+bool weakConjecture(int p, const cosets& cs, std::ostream& os = std::cout) {
+  // if (cs.size() == 1) {
+  //   os << "Only one cycle; trivial!" << std::endl;
+  //   return true;
+  // }
   Graph g = getCosetGraph(p,cs);
-  return weakConjecture(g,os);
+  std::vector< std::vector<int> > distanceMatrix;
+  int num = graphInfo(g,distanceMatrix,os);
+  bool subcon = false;
+  if (p % a != 0) { // then should be strongly connected
+    return (num == 1);
+  } else { // just the non-fake cosets should be "strongly connected"
+    std::vector<bool> good;
+    for (const auto& c : cs) {
+      if (fakeCoset(p,c))
+	good.push_back(false);
+      else
+	good.push_back(true);
+    }
+    for (int f = 0; f < num_vertices(g); ++f) {
+      for (int v = 0; v < num_vertices(g); ++v) {
+	if (good[f] and good[v]) {
+	  if (distanceMatrix[f][v] == -1)
+	    return false;
+	}
+      }
+    }
+  }
+  return true;
 }
 
 using namespace std;
 int main(int argc, char *argv[]) {
-  std::vector<int> tests = {15,17,40,6561,8233,32805};
+  std::vector<int> tests = {15,17,40,81,6561,8233,32805};
   for (int p : tests) {
     if (p % q != 0) {
-      conjclasses cs = getConjugacyClasses(p);
+      cosets cs = getConjugacyClasses(p);
       Graph graph = getCosetGraph(p,cs);
       std::cout << "\n\n----- P = " << p << " -----\n";
       print(std::cout,cs);
@@ -318,7 +346,7 @@ int main(int argc, char *argv[]) {
 	       << "_q" << q << "a" << a << "b" << b
 	       << ".gv";
       printGraph(graph,p,cs,filename.str());
-      weakConjecture(graph,std::cout);
+      weakConjecture(p,cs,std::cout);
     }
   }
 
@@ -327,8 +355,10 @@ int main(int argc, char *argv[]) {
   for (int i = q+1; i < N; ++i)
     if (i % q != 0) primes.push_back(i);
 
-  std::string name = "collatz_output";
-  if (useNullClass) name += "_null";	
+  std::stringstream signature;
+  signature << "q" << q << "a" << a << "b" << b << "_N" << N;
+  std::string name = "collatz_output_";
+  name += signature.str();
   name += ".txt";
   std::ofstream output(name);
 
@@ -336,7 +366,7 @@ int main(int argc, char *argv[]) {
   for (int p : primes) {
     if (p % q == 0) continue;
     output << "\n\n----- P = " << p << " -----\n";
-    conjclasses cs = getConjugacyClasses(p);
+    cosets cs = getConjugacyClasses(p);
     print(output,cs);
     bool good = weakConjecture(p,cs,output);
     if (not good) {
