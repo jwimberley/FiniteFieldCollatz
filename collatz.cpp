@@ -334,7 +334,7 @@ bool weakConjecture(int p, const cosets& cs, std::ostream& os = std::cout) {
 
 using namespace std;
 int main(int argc, char *argv[]) {
-  std::vector<int> tests = {15,17,40,81,6561,8233,32805};
+  std::vector<int> tests = {15,17,31,40,81,6561,8233,32805};
   for (int p : tests) {
     if (p % q != 0) {
       cosets cs = getConjugacyClasses(p);
